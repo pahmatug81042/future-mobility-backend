@@ -19,6 +19,7 @@ securityMiddleware(app);
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/transports", require("./routes/transportRoutes"));
 app.use("/api/fleets", require("./routes/fleetRoutes"));
+app.use("/api/logistics", require("./routes/logisticsRoutes"));
 
 // Error handlers
 app.use(notFound);
