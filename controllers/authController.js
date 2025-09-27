@@ -3,9 +3,6 @@ const User = require("../models/userModel");
 const generateToken = require("../utils/generateToken");
 const sanitizeHtml = require("sanitize-html");
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
 const registerUser = asyncHandler(async (req, res) => {
     const name = sanitizeHtml(req.body.name);
     const email = req.body.email;
@@ -14,9 +11,6 @@ const registerUser = asyncHandler(async (req, res) => {
     res.status(200).json({ message: `User input sanitized: ${name}, ${email}` });
 });
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
 const authUser = asyncHandler(async (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
