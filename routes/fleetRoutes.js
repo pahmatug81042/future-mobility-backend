@@ -2,15 +2,9 @@ const express = require("express");
 const router = express.Router();
 const { body } = require("express-validator");
 const validateRequest = require("../middleware/validateRequest");
-const {
-    getFleets,
-    createFleet,
-    updateFleet,
-    deleteFleet
-} = require("../controllers/fleetController");
+const { getFleets, createFleet, updateFleet, deleteFleet } = require("../controllers/fleetController");
 const { protect } = require("../middleware/authMiddleware");
 
-// Admin routes
 router.get("/", protect, getFleets);
 
 router.post(
