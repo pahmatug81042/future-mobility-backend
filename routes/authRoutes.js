@@ -4,7 +4,6 @@ const { registerUser, authUser } = require("../controllers/authController");
 const { body } = require("express-validator");
 const validateRequest = require("../middleware/validateRequest");
 
-// Register route
 router.post(
     "/register",
     [
@@ -16,7 +15,6 @@ router.post(
     registerUser
 );
 
-// Login route
 router.post(
     "/login",
     [
