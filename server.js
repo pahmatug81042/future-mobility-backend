@@ -1,8 +1,8 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
-const securityMiddleware = require("./middleware/securityMiddleware");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
+const securityMiddleware = require("./middleware/securityMiddleware");
 
 dotenv.config();
 connectDB();
@@ -12,7 +12,7 @@ const app = express();
 // Body parser
 app.use(express.json());
 
-// Security Middlewares
+// Security
 securityMiddleware(app);
 
 // Routes
@@ -20,8 +20,7 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/transports", require("./routes/transportRoutes"));
 app.use("/api/fleets", require("./routes/fleetRoutes"));
 
-
-// Error Handling
+// Error handlers
 app.use(notFound);
 app.use(errorHandler);
 
