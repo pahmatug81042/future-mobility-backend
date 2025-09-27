@@ -2,36 +2,39 @@ const asyncHandler = require("express-async-handler");
 const Transport = require("../models/transportModel");
 const sanitizeHtml = require("sanitize-html");
 
-// @desc    Get all transports
+// @desc    Get all transports with filter, pagination, and sorting
 // @route   GET /api/transports
 // @access  Public
 const getTransports = asyncHandler(async (req, res) => {
-    res.status(200).json({ message: "Get all transports endpoint placeholder" });
+    const { type, status, name, sortBy, page = 1, limit = 10 } = req.query;
+
+    // Build filter object
+    const filter = {};
+    if (type) filter.type = type;
+    if (status) filter.status = status;
+    if (name) filter.name = { $regex: sanitizeHtml(name), $options: "i" }; // partial match
+
+    // Build sort object
+    let sort = {};
+    if (sortBy) {
+        const [field, order] = sortBy.split(":"); // e.g., sustainabilityScore:desc
+        sort[field] = order === "desc" ? -1 : 1;
+    } else {
+        sort = { createdAt: -1 }; // default newest first
+    }
+
+    const skip = (page - 1) * limit;
+    const transports = await Transport.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(Number(limit));
+
+    const total = await Transport.countDocuments(filter);
+
+    res.status(200).json({
+        data: transports,
+        page: Number(page),
+        totalPages: Math.ceil(total / limit),
+        totalItems: total
+    });
 });
-
-// @desc    Create new transport
-// @route   POST /api/transports
-// @access  Private/Admin
-const createTransport = asyncHandler(async (req, res) => {
-    const name = sanitizeHtml(req.body.name);
-    const type = req.body.type;
-    const capacity = req.body.capacity;
-
-    res.status(201).json({ message: `Transport created placeholder: ${name}, ${type}, ${capacity}` });
-});
-
-// @desc    Update transport
-// @route   PUT /api/transports/:id
-// @access  Private/Admin
-const updateTransport = asyncHandler(async (req, res) => {
-    res.status(200).json({ message: `Update transport ${req.params.id} placeholder` });
-});
-
-// @desc    Delete transport
-// @route   DELETE /api/transports/:id
-// @access  Private/Admin
-const deleteTransport = asyncHandler(async (req, res) => {
-    res.status(200).json({ message: `Delete transport ${req.params.id} placeholder` });
-});
-
-module.exports = { getTransports, createTransport, updateTransport, deleteTransport };
