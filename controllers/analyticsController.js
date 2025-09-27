@@ -64,4 +64,40 @@ const getStatusSummary = asyncHandler(async (req, res) => {
     res.status(200).json({ data: aggregation });
 });
 
-module.exports = { getAverageUtilization, getSustainabilityReport, getStatusSummary };
+// @desc    Get average fleet utilization per fleet
+// @route   GET /api/analytics/fleet-utilization
+// @access  Private
+const getFleetUtilization = async (req, res) => {
+    try {
+        const fleets = await Fleet.find({});
+        const data = fleets.map((fleet) => ({
+            _id: fleet._id,
+            name: fleet.name,
+            utilization: fleet.utilization,
+        }));
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ message: "Failed to fetch fleet utilization" });
+    }
+};
+
+// @desc    Get transport summary (status, capacity, assigned fleet)
+// @route   GET /api/analytics/transport-summary
+// @access  Private
+const getTransportSummary = async (req, res) => {
+    try {
+        const transports = await Transport.find({}).populate("fleetId", "name");
+        const data = transports.map((transport) => ({
+            _id: transport._id,
+            name: transport.name,
+            status: transport.status,
+            capacity: transport.capacity,
+            fleetName: transport.fleetId ? transport.fleetId.name : "Unassigned",
+        }));
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ message: "Failed to fetch transport summary" });
+    }
+};
+
+module.exports = { getAverageUtilization, getSustainabilityReport, getStatusSummary, getFleetUtilization, getTransportSummary };
