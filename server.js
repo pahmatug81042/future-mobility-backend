@@ -17,6 +17,7 @@ securityMiddleware(app);
 
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/transports", require("./routes/transportRoutes"));
 
 // Error Handling
 app.use(notFound);
