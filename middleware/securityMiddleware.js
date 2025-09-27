@@ -3,9 +3,9 @@ const mongoSanitize = require("express-mongo-sanitize");
 const cors = require("cors");
 
 const securityMiddleware = (app) => {
-    app.use(helmet());            // Set secure headers
-    app.use(mongoSanitize());     // Prevent NoSQL injection
-    app.use(cors());              // Enable CORS
+    app.use(helmet());
+    app.use(mongoSanitize());
+    app.use(cors());
 };
 
 module.exports = securityMiddleware;
