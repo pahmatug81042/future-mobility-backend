@@ -20,13 +20,26 @@ router.post(
     [
         body("name").trim().notEmpty().withMessage("Name is required"),
         body("type").notEmpty().withMessage("Type is required"),
-        body("capacity").isInt({ min: 1 }).withMessage("Capacity must be at least 1")
+        body("capacity").isInt({ min: 1 }).withMessage("Capacity must be at least 1"),
+        body("sustainabilityScore").optional().isInt({ min: 0, max: 100 }),
+        body("status").optional().isIn(["active", "inactive", "maintenance"])
     ],
     validateRequest,
     createTransport
 );
 
-router.put("/:id", protect, updateTransport);
+router.put(
+    "/:id",
+    protect,
+    [
+        body("capacity").optional().isInt({ min: 1 }).withMessage("Capacity must be at least 1"),
+        body("sustainabilityScore").optional().isInt({ min: 0, max: 100 }),
+        body("status").optional().isIn(["active", "inactive", "maintenance"])
+    ],
+    validateRequest,
+    updateTransport
+);
+
 router.delete("/:id", protect, deleteTransport);
 
 module.exports = router;
