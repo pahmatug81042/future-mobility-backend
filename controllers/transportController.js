@@ -45,8 +45,22 @@ const updateTransport = asyncHandler(async (req, res) => {
 const deleteTransport = asyncHandler(async (req, res) => {
     const transport = await Transport.findById(req.params.id);
     if (!transport) { res.status(404); throw new Error("Transport not found"); }
-    await transport.remove();
+    await transport.deleteOne();
     res.status(200).json({ message: "Transport removed" });
 });
 
-module.exports = { getTransports, createTransport, updateTransport, deleteTransport };
+// @desc    Get single transport by ID
+// @route   GET /api/transports/:id
+// @access  Private
+const getTransportById = asyncHandler(async (req, res) => {
+    const transport = await Transport.findById(req.params.id);
+
+    if (transport) {
+        res.json(transport);
+    } else {
+        res.status(404);
+        throw new Error("Transport not found");
+    }
+});
+
+module.exports = { getTransports, createTransport, updateTransport, deleteTransport, getTransportById };

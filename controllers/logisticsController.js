@@ -79,8 +79,23 @@ const updateLogistics = asyncHandler(async (req, res) => {
 const deleteLogistics = asyncHandler(async (req, res) => {
     const logistics = await Logistics.findById(req.params.id);
     if (!logistics) { res.status(404); throw new Error("Logistics entry not found"); }
-    await logistics.remove();
+    await logistics.deleteOne();
     res.status(200).json({ message: "Logistics entry removed" });
 });
 
-module.exports = { getLogistics, createLogistics, updateLogistics, deleteLogistics };
+// Get single logistics by ID
+const getLogisticsById = asyncHandler(async (req, res) => {
+    const logistics = await Logistics.findById(req.params.id)
+        .populate("fleetId")
+        .populate("transportId");
+
+    if (!logistics) {
+        res.status(404);
+        throw new Error(`Logistics not found with id ${req.params.id}`);
+    }
+
+    res.status(200).json(logistics);
+});
+
+
+module.exports = { getLogistics, createLogistics, updateLogistics, deleteLogistics, getLogisticsById };

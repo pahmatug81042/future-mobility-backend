@@ -1,27 +1,23 @@
 const express = require("express");
 const router = express.Router();
-const { body } = require("express-validator");
-const validateRequest = require("../middleware/validateRequest");
-const { getTransports, createTransport, updateTransport, deleteTransport } = require("../controllers/transportController");
+const {
+    createTransport,
+    getTransports,
+    getTransportById,   // import
+    updateTransport,
+    deleteTransport,
+} = require("../controllers/transportController");
 const { protect } = require("../middleware/authMiddleware");
 
-router.get("/", getTransports);
+// POST & GET all
+router.route("/")
+    .post(protect, createTransport)
+    .get(protect, getTransports);
 
-router.post(
-    "/",
-    protect,
-    [
-        body("name").trim().notEmpty().withMessage("Name is required"),
-        body("type").notEmpty().withMessage("Type is required"),
-        body("capacity").isInt({ min: 1 }).withMessage("Capacity must be at least 1"),
-        body("sustainabilityScore").optional().isInt({ min: 0, max: 100 }),
-        body("status").optional().isIn(["active", "inactive", "maintenance"])
-    ],
-    validateRequest,
-    createTransport
-);
-
-router.put("/:id", protect, updateTransport);
-router.delete("/:id", protect, deleteTransport);
+// GET by ID, PUT, DELETE
+router.route("/:id")
+    .get(protect, getTransportById)  // add this line
+    .put(protect, updateTransport)
+    .delete(protect, deleteTransport);
 
 module.exports = router;

@@ -1,28 +1,27 @@
 const express = require("express");
 const router = express.Router();
-const { body } = require("express-validator");
-const validateRequest = require("../middleware/validateRequest");
-const { getLogistics, createLogistics, updateLogistics, deleteLogistics } = require("../controllers/logisticsController");
 const { protect } = require("../middleware/authMiddleware");
+const {
+    createLogistics,
+    getLogistics,        // <-- rename here
+    getLogisticsById,
+    updateLogistics,
+    deleteLogistics,
+} = require("../controllers/logisticsController");
 
-router.get("/", protect, getLogistics);
+// Create
+router.post("/", protect, createLogistics);
 
-router.post(
-    "/",
-    protect,
-    [
-        body("fleetId").notEmpty().withMessage("Fleet ID is required"),
-        body("transportId").notEmpty().withMessage("Transport ID is required"),
-        body("route").trim().notEmpty().withMessage("Route is required"),
-        body("utilization").optional().isInt({ min: 0, max: 100 }),
-        body("sustainabilityScore").optional().isInt({ min: 0, max: 100 }),
-        body("status").optional().isIn(["active", "inactive", "maintenance"])
-    ],
-    validateRequest,
-    createLogistics
-);
+// Get all
+router.get("/", protect, getLogistics);   // <-- use getLogistics
 
+// Get by ID
+router.get("/:id", protect, getLogisticsById);
+
+// Update
 router.put("/:id", protect, updateLogistics);
+
+// Delete
 router.delete("/:id", protect, deleteLogistics);
 
 module.exports = router;

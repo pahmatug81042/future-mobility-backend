@@ -1,13 +1,39 @@
 const asyncHandler = require("express-async-handler");
+const Analytics = require("../models/analyticsModel");
 const Logistics = require("../models/logisticsModel");
 const Fleet = require("../models/fleetModel");
 const Transport = require("../models/transportModel");
 
-// @desc    Average fleet utilization per transport type
+// @desc    Create a new analytics entry
+// @route   POST /api/analytics
+// @access  Private/Admin
+const createAnalytics = asyncHandler(async (req, res) => {
+    const { fleetId, transportId, logisticsId, metricType, value } = req.body;
+
+    // Validate required fields
+    if (!fleetId || !transportId || !metricType || value === undefined) {
+        res.status(400);
+        throw new Error("fleetId, transportId, metricType, and value are required");
+    }
+
+    const analytics = new Analytics({
+        fleetId,
+        transportId,
+        logisticsId,
+        metricType,
+        value,
+    });
+
+    const createdAnalytics = await analytics.save();
+    res.status(201).json(createdAnalytics);
+});
+
+// @desc    Get average utilization per transport type
 // @route   GET /api/analytics/utilization
 // @access  Private/Admin
 const getAverageUtilization = asyncHandler(async (req, res) => {
-    const aggregation = await Logistics.aggregate([
+    const aggregation = await Analytics.aggregate([
+        { $match: { metricType: "utilization" } },
         {
             $lookup: {
                 from: "transports",
@@ -20,7 +46,7 @@ const getAverageUtilization = asyncHandler(async (req, res) => {
         {
             $group: {
                 _id: "$transport.type",
-                avgUtilization: { $avg: "$utilization" },
+                avgUtilization: { $avg: "$value" },
                 totalVehicles: { $sum: 1 }
             }
         },
@@ -30,17 +56,18 @@ const getAverageUtilization = asyncHandler(async (req, res) => {
     res.status(200).json({ data: aggregation });
 });
 
-// @desc    Sustainability score report
+// @desc    Get sustainability report
 // @route   GET /api/analytics/sustainability
 // @access  Private/Admin
 const getSustainabilityReport = asyncHandler(async (req, res) => {
-    const aggregation = await Logistics.aggregate([
+    const aggregation = await Analytics.aggregate([
+        { $match: { metricType: "sustainability" } },
         {
             $group: {
                 _id: null,
-                avgSustainability: { $avg: "$sustainabilityScore" },
-                maxSustainability: { $max: "$sustainabilityScore" },
-                minSustainability: { $min: "$sustainabilityScore" }
+                avgSustainability: { $avg: "$value" },
+                maxSustainability: { $max: "$value" },
+                minSustainability: { $min: "$value" }
             }
         }
     ]);
@@ -48,14 +75,15 @@ const getSustainabilityReport = asyncHandler(async (req, res) => {
     res.status(200).json({ data: aggregation[0] || {} });
 });
 
-// @desc    Active/inactive vehicle summary
+// @desc    Get status summary
 // @route   GET /api/analytics/status-summary
 // @access  Private/Admin
 const getStatusSummary = asyncHandler(async (req, res) => {
-    const aggregation = await Logistics.aggregate([
+    const aggregation = await Analytics.aggregate([
+        { $match: { metricType: "status" } },
         {
             $group: {
-                _id: "$status",
+                _id: "$value",
                 count: { $sum: 1 }
             }
         }
@@ -64,40 +92,53 @@ const getStatusSummary = asyncHandler(async (req, res) => {
     res.status(200).json({ data: aggregation });
 });
 
-// @desc    Get average fleet utilization per fleet
+// @desc    Get fleet utilization
 // @route   GET /api/analytics/fleet-utilization
-// @access  Private
-const getFleetUtilization = async (req, res) => {
-    try {
-        const fleets = await Fleet.find({});
-        const data = fleets.map((fleet) => ({
+// @access  Private/Admin
+const getFleetUtilization = asyncHandler(async (req, res) => {
+    const fleets = await Fleet.find({});
+    const data = await Promise.all(fleets.map(async (fleet) => {
+        const analytics = await Analytics.find({ fleetId: fleet._id, metricType: "utilization" });
+        const avgUtilization = analytics.length > 0
+            ? analytics.reduce((sum, a) => sum + a.value, 0) / analytics.length
+            : 0;
+        return {
             _id: fleet._id,
             name: fleet.name,
-            utilization: fleet.utilization,
-        }));
-        res.json(data);
-    } catch (error) {
-        res.status(500).json({ message: "Failed to fetch fleet utilization" });
-    }
-};
+            utilization: avgUtilization
+        };
+    }));
+    res.json(data);
+});
 
-// @desc    Get transport summary (status, capacity, assigned fleet)
+// @desc    Get transport summary
 // @route   GET /api/analytics/transport-summary
-// @access  Private
-const getTransportSummary = async (req, res) => {
-    try {
-        const transports = await Transport.find({}).populate("fleetId", "name");
-        const data = transports.map((transport) => ({
+// @access  Private/Admin
+const getTransportSummary = asyncHandler(async (req, res) => {
+    const transports = await Transport.find({}).populate("fleetId", "name");
+    const data = await Promise.all(transports.map(async (transport) => {
+        const analytics = await Analytics.find({ transportId: transport._id });
+        const utilizationAnalytics = analytics.filter(a => a.metricType === "utilization");
+        const avgUtilization = utilizationAnalytics.length > 0
+            ? utilizationAnalytics.reduce((sum, a) => sum + a.value, 0) / utilizationAnalytics.length
+            : 0;
+        return {
             _id: transport._id,
             name: transport.name,
             status: transport.status,
             capacity: transport.capacity,
             fleetName: transport.fleetId ? transport.fleetId.name : "Unassigned",
-        }));
-        res.json(data);
-    } catch (error) {
-        res.status(500).json({ message: "Failed to fetch transport summary" });
-    }
-};
+            avgUtilization
+        };
+    }));
+    res.json(data);
+});
 
-module.exports = { getAverageUtilization, getSustainabilityReport, getStatusSummary, getFleetUtilization, getTransportSummary };
+module.exports = {
+    createAnalytics,
+    getAverageUtilization,
+    getSustainabilityReport,
+    getStatusSummary,
+    getFleetUtilization,
+    getTransportSummary
+};

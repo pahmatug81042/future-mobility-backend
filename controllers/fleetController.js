@@ -55,8 +55,20 @@ const updateFleet = asyncHandler(async (req, res) => {
 const deleteFleet = asyncHandler(async (req, res) => {
     const fleet = await Fleet.findById(req.params.id);
     if (!fleet) { res.status(404); throw new Error("Fleet not found"); }
-    await fleet.remove();
+    await fleet.deleteOne();
     res.status(200).json({ message: "Fleet vehicle removed" });
 });
 
-module.exports = { getFleets, createFleet, updateFleet, deleteFleet };
+// @desc    Get a fleet by ID
+// @route   GET /api/fleets/:id
+// @access  Private
+const getFleetById = asyncHandler(async (req, res) => {
+    const fleet = await Fleet.findById(req.params.id).populate("assignedRoutes");
+    if (!fleet) {
+        res.status(404);
+        throw new Error("Fleet not found");
+    }
+    res.json(fleet);
+});
+
+module.exports = { getFleets, createFleet, updateFleet, deleteFleet, getFleetById };

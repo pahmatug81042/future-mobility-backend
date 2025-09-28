@@ -1,7 +1,8 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
-const cors = require("cors"); // <-- add CORS
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 const securityMiddleware = require("./middleware/securityMiddleware");
 
@@ -13,14 +14,29 @@ const app = express();
 // Body parser
 app.use(express.json());
 
-// CORS setup for frontend with credentials
-const allowedOrigins = ["http://localhost:5173"];
-app.use(cors({
-    origin: allowedOrigins,
-    credentials: true, // allow cookies/auth headers
-}));
+// Cookie parser middleware
+app.use(cookieParser());
 
-// Security
+// Allowed frontend origins
+const allowedOrigins = ["http://localhost:5173"];
+
+// CORS setup with credentials support
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true); // allow Postman or server-to-server requests
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error("Not allowed by CORS"), false);
+    },
+    credentials: true, // allow cookies/auth headers
+};
+
+// Handle preflight OPTIONS requests globally
+app.options("*", cors(corsOptions));
+
+// Apply CORS to all routes
+app.use(cors(corsOptions));
+
+// Apply security middleware AFTER CORS
 securityMiddleware(app);
 
 // Routes
