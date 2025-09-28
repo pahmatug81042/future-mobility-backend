@@ -7,7 +7,8 @@ const {
     getSustainabilityReport,
     getStatusSummary,
     getFleetUtilization,
-    getTransportSummary
+    getTransportSummary,
+    getAnalyticsSummary
 } = require("../controllers/analyticsController");
 
 // Create a new analytics entry
@@ -19,5 +20,8 @@ router.get("/sustainability", protect, getSustainabilityReport);
 router.get("/status-summary", protect, getStatusSummary);
 router.get("/fleet-utilization", protect, getFleetUtilization);
 router.get("/transport-summary", protect, getTransportSummary);
+
+// ======================= NEW =======================
+router.get("/summary", protect, getAnalyticsSummary);
 
 module.exports = router;

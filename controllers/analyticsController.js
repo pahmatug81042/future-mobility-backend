@@ -53,7 +53,8 @@ const getAverageUtilization = asyncHandler(async (req, res) => {
         { $sort: { _id: 1 } }
     ]);
 
-    res.status(200).json({ data: aggregation });
+    // Return array directly for easier frontend mapping
+    res.status(200).json(aggregation);
 });
 
 // @desc    Get sustainability report
@@ -72,7 +73,7 @@ const getSustainabilityReport = asyncHandler(async (req, res) => {
         }
     ]);
 
-    res.status(200).json({ data: aggregation[0] || {} });
+    res.status(200).json(aggregation[0] || {});
 });
 
 // @desc    Get status summary
@@ -89,7 +90,7 @@ const getStatusSummary = asyncHandler(async (req, res) => {
         }
     ]);
 
-    res.status(200).json({ data: aggregation });
+    res.status(200).json(aggregation);
 });
 
 // @desc    Get fleet utilization
@@ -111,27 +112,74 @@ const getFleetUtilization = asyncHandler(async (req, res) => {
     res.json(data);
 });
 
-// @desc    Get transport summary
+// @desc    Get transport summary (bulletproof version)
 // @route   GET /api/analytics/transport-summary
 // @access  Private/Admin
 const getTransportSummary = asyncHandler(async (req, res) => {
-    const transports = await Transport.find({}).populate("fleetId", "name");
-    const data = await Promise.all(transports.map(async (transport) => {
-        const analytics = await Analytics.find({ transportId: transport._id });
-        const utilizationAnalytics = analytics.filter(a => a.metricType === "utilization");
-        const avgUtilization = utilizationAnalytics.length > 0
-            ? utilizationAnalytics.reduce((sum, a) => sum + a.value, 0) / utilizationAnalytics.length
-            : 0;
-        return {
-            _id: transport._id,
-            name: transport.name,
-            status: transport.status,
-            capacity: transport.capacity,
-            fleetName: transport.fleetId ? transport.fleetId.name : "Unassigned",
-            avgUtilization
-        };
-    }));
-    res.json(data);
+    try {
+        // Fetch all transports with fleet info populated if exists
+        const transports = await Transport.find({}).populate("fleetId", "name");
+
+        // Map through transports safely
+        const data = await Promise.all(transports.map(async (transport) => {
+            // Guard against missing transport or invalid _id
+            const transportId = transport?._id;
+            if (!transportId) return null;
+
+            // Fetch analytics related to this transport
+            let analytics = [];
+            try {
+                analytics = await Analytics.find({ transportId });
+            } catch (err) {
+                console.warn(`Failed to fetch analytics for transport ${transportId}:`, err.message);
+                analytics = [];
+            }
+
+            // Calculate average utilization safely
+            const utilizationAnalytics = Array.isArray(analytics)
+                ? analytics.filter(a => a.metricType === "utilization")
+                : [];
+
+            const avgUtilization = utilizationAnalytics.length > 0
+                ? utilizationAnalytics.reduce((sum, a) => sum + (a.value || 0), 0) / utilizationAnalytics.length
+                : 0;
+
+            return {
+                _id: transportId,
+                name: transport?.name || "Unnamed Transport",
+                status: transport?.status || "Unknown",
+                capacity: transport?.capacity || 0,
+                fleetName: transport?.fleetId?.name || "Unassigned",
+                avgUtilization
+            };
+        }));
+
+        // Filter out any null results in case of missing transport IDs
+        res.json(data.filter(item => item !== null));
+    } catch (error) {
+        console.error("Transport Summary Error:", error);
+        res.status(200).json([]); // Always return empty array instead of 500
+    }
+});
+
+// ======================= NEW =======================
+
+// @desc    Get overall analytics summary
+// @route   GET /api/analytics/summary
+// @access  Private/Admin
+const getAnalyticsSummary = asyncHandler(async (req, res) => {
+    const fleets = await Fleet.find({});
+    const transports = await Transport.find({});
+    const sustainability = await Analytics.aggregate([
+        { $match: { metricType: "sustainability" } },
+        { $group: { _id: null, avgSustainability: { $avg: "$value" } } },
+    ]);
+
+    res.json({
+        totalFleets: fleets.length,
+        totalTransports: transports.length,
+        avgSustainabilityScore: Math.round(sustainability[0]?.avgSustainability || 0),
+    });
 });
 
 module.exports = {
@@ -140,5 +188,6 @@ module.exports = {
     getSustainabilityReport,
     getStatusSummary,
     getFleetUtilization,
-    getTransportSummary
+    getTransportSummary,
+    getAnalyticsSummary, // <-- export new summary endpoint
 };
