@@ -34,7 +34,7 @@ The backend of **Future Mobility Manager** powers secure fleet and transport man
    ```
 
 ## Environment Variables
-* Create a .env file inside backend/ with the following values:
+* Create a .env file inside future-mobility-backend/ with the following values:
   ```bash
   PORT=5000
   MONGO_URI=your_mongodb_connection_string
