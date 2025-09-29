@@ -2,6 +2,9 @@
 
 The backend of **Future Mobility Manager** powers secure fleet and transport management using a RESTful API built with Node.js, Express, and MongoDB. It provides authentication, CRUD operations, and analytics support for the frontend.
 
+## Link to Frontend GitHub Repository
+https://github.com/pahmatug81042/future-mobility-frontend
+
 ## Features
 - User authentication with **JWT** (register/login)
 - **Fleet management** (create, update, delete, list)
